@@ -1,0 +1,86 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import sys
+from math import acos, cos, radians, sin
+
+import PIL
+from PIL import ExifTags, Image
+
+
+def haversine(lat1, lon1, lat2, lon2):
+    # algorithm from https://www.geeksforgeeks.org/program-distance-two-points-earth/
+    rlat1 = radians(lat1)
+    rlon1 = radians(lon1)
+    rlat2 = radians(lat2)
+    rlon2 = radians(lon2)
+    d = acos((sin(rlat1) * sin(rlat2)) + cos(rlat1) * cos(rlat2) * cos(rlon2 - rlon1))
+    return d * 6377830.272
+
+
+def geotodec(geo):
+    deg, dmin, dsec = geo
+    return float(deg) + float(dmin) / 60 + float(dsec) / 3600
+
+
+def geoget(fp):
+    try:
+        img = Image.open(fp)
+    except PIL.UnidentifiedImageError:
+        # no image
+        return None
+    exif = img.getexif()
+
+    ifd = exif.get_ifd(ExifTags.IFD.GPSInfo)
+
+    lat, lon = None, None
+    for k, v in ifd.items():
+        tag = ExifTags.GPSTAGS.get(k, k)
+        if tag == "GPSLatitude":
+            lat = geotodec(v)
+        if tag == "GPSLongitude":
+            lon = geotodec(v)
+        # FIXME check GPSLongitudeRef
+    if lat and lon:
+        return lat, lon
+    # no geotags
+    return None
+
+
+def checkfile(fp, slat, slon):
+    r = geoget(fp)
+    if not r:
+        return None
+    lat, lon = r
+    d = haversine(slat, slon, lat, lon)
+    if d < args.distance:
+        print(f"{fp} {d:.2f} m")
+        return True
+    return None
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument("input", nargs="+", help="files/dirs to search")
+ap.add_argument("--lat", help="Decimal longitude", required=True, type=float)
+ap.add_argument("--lon", help="Decimal longitude", required=True, type=float)
+ap.add_argument("--distance", help="Distance in m", default=500, type=float)
+args = ap.parse_args()
+
+ret = 1
+for inp in args.input:
+    if os.path.isdir(inp):
+        for root, _, files in os.walk(inp):
+            for fn in files:
+                fp = os.path.join(root, fn)
+                r = checkfile(fp, args.lat, args.lon)
+                if r:
+                    ret = 0
+    elif os.path.isfile(inp):
+        r = checkfile(inp, args.lat, args.lon)
+        if r:
+            ret = 0
+    else:
+        print(f"ERROR with {inp}")
+
+sys.exit(ret)
