@@ -64,7 +64,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument("input", nargs="+", help="files/dirs to search")
 ap.add_argument("--lat", help="Decimal longitude", required=True, type=float)
 ap.add_argument("--lon", help="Decimal longitude", required=True, type=float)
-ap.add_argument("--distance", help="Distance in m", default=500, type=float)
+ap.add_argument(
+    "--distance", help="Distance in m (default: 500)", default=500, type=float
+)
 args = ap.parse_args()
 
 ret = 1
