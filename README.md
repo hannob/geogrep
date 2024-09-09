@@ -1,5 +1,7 @@
 # geogrep
-Find images by geo coordinate proximity
+Find images by geo coordinate proximity.
+
+# usage
 
 This script allows searching a collection of images with exif geotags for ones in
 proximity to a certain location.
