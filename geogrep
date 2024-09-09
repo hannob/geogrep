@@ -42,7 +42,7 @@ def geoget(fp):
         if tag == "GPSLongitude":
             lon = geotodec(v)
         # FIXME check GPSLongitudeRef
-    if lat and lon:
+    if lat is not None and lon is not None:
         return lat, lon
     # no geotags
     return None
